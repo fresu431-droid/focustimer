@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="sv">
-<head <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a0a'/><circle cx='50' cy='50' r='35' fill='none' stroke='%231d9e75' stroke-width='6'/><line x1='50' y1='50' x2='50' y2='22' stroke='%231d9e75' stroke-width='5' stroke-linecap='round'/><line x1='50' y1='50' x2='68' y2='60' stroke='%23f0f0f0' stroke-width='4' stroke-linecap='round'/></svg>">>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="FocusTimer">
 <meta name="theme-color" content="#0a0a0a">
@@ -170,32 +169,29 @@ const CIRC = 628;
  
 const defaultData = {
   categories: [
-    { id: 'ls', name: 'L/S-buggen', tasks: [
+    { id: 'playconomy', name: 'PlayConomy', tasks: [
       { id: 't1', name: 'Reproducera och isolera L/S-buggen', estMins: 60, done: false, loggedSecs: 0 },
       { id: 't2', name: 'Fixa L/S-variabellogiken', estMins: 180, done: false, loggedSecs: 0 },
       { id: 't3', name: 'Testa L/S end-to-end i drill-biblioteket', estMins: 60, done: false, loggedSecs: 0 },
-    ]},
-    { id: 'drills', name: 'Drill-bibliotek', tasks: [
       { id: 't4', name: 'Drills 11–20 — anfallsspel', estMins: 480, done: false, loggedSecs: 0 },
       { id: 't5', name: 'Drills 21–30 — försvarsspel', estMins: 480, done: false, loggedSecs: 0 },
       { id: 't6', name: 'Drills 31–40 — övergångar & pressing', estMins: 480, done: false, loggedSecs: 0 },
       { id: 't7', name: 'Drills 41–50 — standardsituationer', estMins: 480, done: false, loggedSecs: 0 },
       { id: 't8', name: 'Drills 51–55 — avslutning & uppvärmning', estMins: 300, done: false, loggedSecs: 0 },
       { id: 't9', name: 'Kvalitetsgranskning alla drills', estMins: 180, done: false, loggedSecs: 0 },
-    ]},
-    { id: 'arch', name: 'Arkitektur & multi-tränar', tasks: [
       { id: 't10', name: 'Multi-tränar datamodell', estMins: 240, done: false, loggedSecs: 0 },
       { id: 't11', name: 'Inbjudningsflöde (förening → tränare)', estMins: 300, done: false, loggedSecs: 0 },
       { id: 't12', name: 'Behörigheter och roller', estMins: 240, done: false, loggedSecs: 0 },
       { id: 't13', name: 'Testa multi-tränar med KFUM-scenario', estMins: 180, done: false, loggedSecs: 0 },
-    ]},
-    { id: 'pilot', name: 'Pilot KFUM — aug', tasks: [
       { id: 't14', name: 'Onboarding-flöde för ny tränare', estMins: 240, done: false, loggedSecs: 0 },
       { id: 't15', name: 'Intern testperiod (du + en tränare)', estMins: 360, done: false, loggedSecs: 0 },
       { id: 't16', name: 'Feedback-runda och fix', estMins: 300, done: false, loggedSecs: 0 },
       { id: 't17', name: 'Produktionsrelease EAS', estMins: 120, done: false, loggedSecs: 0 },
       { id: 't18', name: 'Enkel landningssida / intro för KFUM', estMins: 180, done: false, loggedSecs: 0 },
     ]},
+    { id: 'kfum', name: 'KFUM Norrköping', tasks: [] },
+    { id: 'rfsisu', name: 'RF-SISU', tasks: [] },
+    { id: 'privat', name: 'Privat', tasks: [] },
   ]
 };
  
