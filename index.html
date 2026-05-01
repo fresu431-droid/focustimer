@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FocusTimer">
+<meta name="theme-color" content="#0a0a0a">
+<title>FocusTimer</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --border2: #383838;
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --green: #1d9e75;
+    --green-dim: rgba(29,158,117,0.12);
+    --red: #e24b4a;
+    --red-dim: rgba(226,75,74,0.12);
+    --amber: #ef9f27;
+    --blue: #3266ad;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', sans-serif; overflow-x: hidden; }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; height: 100dvh; }
+  .screen.active { display: flex; }
+
+  /* TOP BAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; flex-shrink: 0; }
+  .topbar-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .topbar-sub { font-size: 13px; color: var(--text2); margin-top: 1px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--surface2); color: var(--text); font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+  /* PROGRESS */
+  .progress-wrap { padding: 8px 20px 0; flex-shrink: 0; }
+  .progress-track { background: var(--border); border-radius: 3px; height: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s ease; }
+  .progress-label { font-size: 11px; color: var(--text3); margin-top: 5px; display: flex; justify-content: space-between; }
+
+  /* TASK LIST */
+  .list-scroll { flex: 1; overflow-y: auto; padding: 12px 20px 100px; -webkit-overflow-scrolling: touch; }
+  .cat-header { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); margin: 20px 0 8px; display: flex; justify-content: space-between; }
+  .cat-header:first-child { margin-top: 4px; }
+  .cat-hrs { font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: border-color 0.15s; }
+  .task-card:active { opacity: 0.8; }
+  .task-card.done { opacity: 0.35; }
+  .task-card.selected { border-color: var(--green); background: var(--green-dim); }
+
+  .check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; transition: all 0.15s; }
+  .check.on { background: var(--green); border-color: var(--green); color: #fff; }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-size: 15px; font-weight: 500; line-height: 1.3; }
+  .task-name.struck { text-decoration: line-through; color: var(--text3); }
+  .task-cat-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .task-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .task-est { font-size: 12px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .play-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .play-btn.active-play { background: var(--green); border-color: var(--green); color: #fff; }
+
+  /* FAB */
+  .fab { position: fixed; bottom: 24px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--green); border: none; color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 20px rgba(29,158,117,0.4); z-index: 10; }
+
+  /* TIMER SCREEN */
+  .timer-screen-inner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .timer-task-name { font-size: 18px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+  .timer-cat-name { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 40px; }
+
+  .ring-wrap { position: relative; width: 220px; height: 220px; margin-bottom: 40px; }
+  .ring-wrap svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+  .ring-fg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-big { font-size: 52px; font-weight: 700; letter-spacing: -2px; font-variant-numeric: tabular-nums; }
+  .timer-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .timer-over { color: var(--red); }
+
+  .timer-btns { display: flex; gap: 16px; }
+  .t-btn { height: 52px; border-radius: 26px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0 28px; }
+  .t-btn-main { background: var(--green); color: #fff; flex: 1; justify-content: center; }
+  .t-btn-main.pausing { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .t-btn-back { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); padding: 0 20px; }
+  .t-btn-done { background: var(--blue); color: #fff; }
+
+  .timer-stats { display: flex; gap: 24px; margin-bottom: 32px; }
+  .tstat { text-align: center; }
+  .tstat-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tstat-lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ADD SCREEN */
+  .add-screen-inner { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+  .form-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; margin-top: 16px; display: block; }
+  .form-input { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 16px; padding: 12px 14px; outline: none; -webkit-appearance: none; }
+  .form-input:focus { border-color: var(--green); }
+  select.form-input { cursor: pointer; }
+  .ai-hint { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 8px; font-size: 14px; color: var(--text2); min-height: 48px; line-height: 1.5; }
+  .ai-hint.loading { color: var(--text3); }
+  .guess-btn { margin-top: 8px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text2); font-size: 14px; padding: 10px 16px; cursor: pointer; width: 100%; }
+  .save-btn { margin-top: 24px; width: 100%; height: 52px; border-radius: 26px; background: var(--green); border: none; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .est-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .est-row input { flex: 1; }
+  .est-unit { font-size: 14px; color: var(--text2); }
+
+  /* SHEET (add modal bg) */
+  .sheet-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 20; }
+  .sheet-bg.open { display: flex; align-items: flex-end; }
+  .sheet { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-height: 90dvh; overflow-y: auto; padding: 0 0 40px; }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 12px auto 16px; }
+  .sheet-title { font-size: 17px; font-weight: 700; padding: 0 20px 4px; }
+  .sheet-body { padding: 0 20px; }
+</style>
+</head>
+<body>
+
+<!-- LIST SCREEN -->
+<div class="screen active" id="screenList">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">FocusTimer</div>
+      <div class="topbar-sub" id="topSub">Laddar...</div>
+    </div>
+    <button class="icon-btn" onclick="openStats()">📊</button>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    <div class="progress-label"><span id="progLeft">— timmar kvar</span><span id="progPct">0%</span></div>
+  </div>
+  <div class="list-scroll" id="taskList"></div>
+  <button class="fab" onclick="openAdd()">＋</button>
+</div>
+
+<!-- TIMER SCREEN -->
+<div class="screen" id="screenTimer">
+  <div class="topbar">
+    <button class="icon-btn" onclick="goBack()">←</button>
+    <div style="text-align:right">
+      <div class="topbar-sub" id="timerDate"></div>
+    </div>
+  </div>
+  <div class="timer-screen-inner">
+    <div class="timer-task-name" id="timerTaskName">—</div>
+    <div class="timer-cat-name" id="timerCatName">—</div>
+    <div class="timer-stats">
+      <div class="tstat"><div class="tstat-val" id="statEst">—</div><div class="tstat-lbl">Uppskattad tid</div></div>
+      <div class="tstat"><div class="tstat-val" id="statLogged">0:00</div><div class="tstat-lbl">Loggat idag</div></div>
+      <div class="tstat"><div class="tstat-val" id="statDone" style="color:var(--green)">0/0</div><div class="tstat-lbl">Klara uppg.</div></div>
+    </div>
+    <div class="ring-wrap">
+      <svg width="220" height="220" viewBox="0 0 220 220">
+        <circle class="ring-bg" cx="110" cy="110" r="100"/>
+        <circle class="ring-fg" id="ringFg" cx="110" cy="110" r="100" stroke="var(--green)" stroke-dasharray="628" stroke-dashoffset="0"/>
+      </svg>
+      <div class="ring-center">
+        <div class="timer-big" id="timerBig">00:00</div>
+        <div class="timer-label" id="timerLbl">kvar</div>
+      </div>
+    </div>
+    <div class="timer-btns">
+      <button class="t-btn t-btn-back" onclick="goBack()">↩ Lista</button>
+      <button class="t-btn t-btn-main" id="btnStartPause" onclick="toggleTimer()">▶ Starta</button>
+      <button class="t-btn t-btn-done" onclick="markDoneFromTimer()">✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SHEET -->
+<div class="sheet-bg" id="sheetBg" onclick="closeAdd(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ny uppgift</div>
+    <div class="sheet-body">
+      <label class="form-label">Uppgift</label>
+      <input class="form-input" id="addName" placeholder="Vad ska göras?" oninput="clearAI()">
+      <label class="form-label">Kategori</label>
+      <select class="form-input" id="addCat"></select>
+      <label class="form-label">Uppskattad tid (minuter)</label>
+      <div class="est-row">
+        <input class="form-input" id="addMins" type="number" min="5" step="5" placeholder="t.ex. 30">
+        <span class="est-unit">min</span>
+      </div>
+      <button class="guess-btn" onclick="aiGuess()">🤖 Låt AI gissa tid</button>
+      <div class="ai-hint" id="aiHint" style="display:none"></div>
+      <button class="save-btn" onclick="saveTask()">Spara uppgift</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'focustimer_v3';
+const CIRCUMFERENCE = 628;
+
+const defaultData = {
+  categories: [
+    { id: 'ls', name: 'L/S-buggen', tasks: [
+      { id: 't1', name: 'Reproducera och isolera L/S-buggen', estMins: 60, done: false, loggedSecs: 0 },
+      { id: 't2', name: 'Fixa L/S-variabellogiken', estMins: 180, done: false, loggedSecs: 0 },
+      { id: 't3', name: 'Testa L/S i drill-biblioteket end-to-end', estMins: 60, done: false, loggedSecs: 0 },
+    ]},
+    { id: 'drills', name: 'Drill-bibliotek', tasks: [
+      { id: 't4', name: 'Drills 11–20 — anfallsspel', estMins: 480, done: false, loggedSecs: 0 },
+      { id: 't5', name: 'Drills 21–30 — försvarsspel', estMins: 480, done: false, loggedSecs: 0 },
+      { id: 't6', name: 'Drills 31–40 — övergångar & pressing', estMins: 480, done: false, loggedSecs: 0 },
+      { id: 't7', name: 'Drills 41–50 — standardsituationer', estMins: 480, done: false, loggedSecs: 0 },
+      { id: 't8', name: 'Drills 51–55 — avslutning & uppvärmning', estMins: 300, done: false, loggedSecs: 0 },
+      { id: 't9', name: 'Kvalitetsgranskning alla drills', estMins: 180, done: false, loggedSecs: 0 },
+    ]},
+    { id: 'arch', name: 'Arkitektur & multi-tränar', tasks: [
+      { id: 't10', name: 'Multi-tränar datamodell', estMins: 240, done: false, loggedSecs: 0 },
+      { id: 't11', name: 'Inbjudningsflöde (förening → tränare)', estMins: 300, done: false, loggedSecs: 0 },
+      { id: 't12', name: 'Behörigheter och roller', estMins: 240, done: false, loggedSecs: 0 },
+      { id: 't13', name: 'Testa multi-tränar med KFUM-scenario', estMins: 180, done: false, loggedSecs: 0 },
+    ]},
+    { id: 'pilot', name: 'Pilot KFUM — aug', tasks: [
+      { id: 't14', name: 'Onboarding-flöde för ny tränare', estMins: 240, done: false, loggedSecs: 0 },
+      { id: 't15', name: 'Intern testperiod (du + en tränare)', estMins: 360, done: false, loggedSecs: 0 },
+      { id: 't16', name: 'Feedback-runda och fix', estMins: 300, done: false, loggedSecs: 0 },
+      { id: 't17', name: 'Produktionsrelease EAS', estMins: 120, done: false, loggedSecs: 0 },
+      { id: 't18', name: 'Enkel landningssida / intro för KFUM', estMins: 180, done: false, loggedSecs: 0 },
+    ]},
+  ]
+};
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || JSON.parse(JSON.stringify(defaultData));
+let activeTask = null;
+let timerInterval = null;
+let sessionSecs = 0;
+let running = false;
+let isOvertime = false;
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function allTasks() { return data.categories.flatMap(c => c.tasks.map(t => ({...t, catName: c.name, catId: c.id}))); }
+
+function totalEstMins() { return allTasks().reduce((s, t) => s + (t.done ? 0 : t.estMins), 0); }
+function totalEstAll() { return allTasks().reduce((s, t) => s + t.estMins, 0); }
+function doneCount() { return allTasks().filter(t => t.done).length; }
+function totalCount() { return allTasks().length; }
+
+function fmtMins(m) {
+  if (m >= 60) { const h = Math.floor(m/60); const mm = m%60; return mm ? h+'h '+mm+'m' : h+'h'; }
+  return m+'m';
+}
+function fmtSecs(s) {
+  const abs = Math.abs(s);
+  const m = Math.floor(abs/60).toString().padStart(2,'0');
+  const ss = (abs%60).toString().padStart(2,'0');
+  return m+':'+ss;
+}
+function fmtSecsH(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60).toString().padStart(2,'0');
+  return h+':'+m;
+}
+
+function renderList() {
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  const totalMins = totalEstMins();
+  const totalAll = totalEstAll();
+  const done = doneCount();
+  const total = totalCount();
+  const pct = totalAll > 0 ? Math.round(((totalAll - totalMins) / totalAll) * 100) : 0;
+
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progLeft').textContent = fmtMins(totalMins) + ' kvar';
+  document.getElementById('topSub').textContent = done + ' av ' + total + ' uppgifter klara';
+
+  data.categories.forEach(cat => {
+    const hdr = document.createElement('div');
+    hdr.className = 'cat-header';
+    const catMins = cat.tasks.reduce((s,t) => s + (t.done?0:t.estMins), 0);
+    hdr.innerHTML = '<span>' + cat.name + '</span><span class="cat-hrs">' + fmtMins(catMins) + ' kvar</span>';
+    list.appendChild(hdr);
+
+    cat.tasks.forEach(task => {
+      const isSelected = activeTask && activeTask.id === task.id;
+      const card = document.createElement('div');
+      card.className = 'task-card' + (task.done ? ' done' : '') + (isSelected ? ' selected' : '');
+      card.innerHTML = `
+        <div class="check ${task.done ? 'on' : ''}" onclick="toggleDone('${cat.id}','${task.id}',event)">
+          ${task.done ? '✓' : ''}
+        </div>
+        <div class="task-info">
+          <div class="task-name ${task.done ? 'struck' : ''}">${task.name}</div>
+          <div class="task-cat-tag">${task.loggedSecs > 0 ? '⏱ '+fmtSecsH(task.loggedSecs)+' loggat' : cat.name}</div>
+        </div>
+        <div class="task-right">
+          <div class="task-est">${fmtMins(task.estMins)}</div>
+          <button class="play-btn ${isSelected ? 'active-play' : ''}" onclick="selectTask('${cat.id}','${task.id}',event)">
+            ${isSelected ? '▶' : '▶'}
+          </button>
+        </div>`;
+      list.appendChild(card);
+    });
+  });
+}
+
+function toggleDone(catId, taskId, e) {
+  e.stopPropagation();
+  const cat = data.categories.find(c => c.id === catId);
+  const task = cat.tasks.find(t => t.id === taskId);
+  task.done = !task.done;
+  if (task.done && activeTask && activeTask.id === taskId) { stopTimer(); activeTask = null; }
+  save(); renderList();
+}
+
+function selectTask(catId, taskId, e) {
+  e.stopPropagation();
+  const cat = data.categories.find(c => c.id === catId);
+  const task = cat.tasks.find(t => t.id === taskId);
+  if (running) stopTimer();
+  activeTask = { ...task, catName: cat.name, catId };
+  sessionSecs = 0;
+  showScreen('screenTimer');
+  renderTimer();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screenTimer') {
+    document.getElementById('timerDate').textContent = new Date().toLocaleDateString('sv-SE', {weekday:'short', day:'numeric', month:'short'});
+  }
+}
+
+function renderTimer() {
+  if (!activeTask) return;
+  document.getElementById('timerTaskName').textContent = activeTask.name;
+  document.getElementById('timerCatName').textContent = activeTask.catName;
+  document.getElementById('statEst').textContent = fmtMins(activeTask.estMins);
+  document.getElementById('statDone').textContent = doneCount() + '/' + totalCount();
+  const totalLogged = allTasks().reduce((s,t) => s + t.loggedSecs, 0);
+  document.getElementById('statLogged').textContent = fmtSecsH(totalLogged);
+  updateRing();
+}
+
+function updateRing() {
+  if (!activeTask) return;
+  const estSecs = activeTask.estMins * 60;
+  const remaining = estSecs - sessionSecs;
+  isOvertime = remaining < 0;
+  const big = document.getElementById('timerBig');
+  const lbl = document.getElementById('timerLbl');
+  const ring = document.getElementById('ringFg');
+
+  if (isOvertime) {
+    big.textContent = '+' + fmtSecs(Math.abs(remaining));
+    big.className = 'timer-big timer-over';
+    lbl.textContent = 'övertid';
+    ring.style.stroke = 'var(--red)';
+    ring.style.strokeDashoffset = '0';
+  } else {
+    big.textContent = fmtSecs(remaining);
+    big.className = 'timer-big';
+    lbl.textContent = 'kvar';
+    ring.style.stroke = remaining < estSecs * 0.2 ? 'var(--amber)' : 'var(--green)';
+    const offset = CIRCUMFERENCE * (sessionSecs / estSecs);
+    ring.style.strokeDashoffset = Math.min(offset, CIRCUMFERENCE);
+  }
+}
+
+function toggleTimer() {
+  if (running) { stopTimer(); } else { startTimer(); }
+}
+
+function startTimer() {
+  running = true;
+  document.getElementById('btnStartPause').textContent = '⏸ Pausa';
+  document.getElementById('btnStartPause').className = 't-btn t-btn-main pausing';
+  timerInterval = setInterval(() => {
+    sessionSecs++;
+    updateRing();
+    const totalLogged = allTasks().reduce((s,t) => s + t.loggedSecs, 0);
+    document.getElementById('statLogged').textContent = fmtSecsH(totalLogged + sessionSecs);
+  }, 1000);
+}
+
+function stopTimer() {
+  running = false;
+  clearInterval(timerInterval);
+  document.getElementById('btnStartPause').textContent = '▶ Fortsätt';
+  document.getElementById('btnStartPause').className = 't-btn t-btn-main';
+  if (activeTask && sessionSecs > 0) {
+    const cat = data.categories.find(c => c.id === activeTask.catId);
+    const task = cat && cat.tasks.find(t => t.id === activeTask.id);
+    if (task) { task.loggedSecs = (task.loggedSecs || 0) + sessionSecs; sessionSecs = 0; save(); }
+  }
+}
+
+function markDoneFromTimer() {
+  if (running) stopTimer();
+  if (!activeTask) return;
+  const cat = data.categories.find(c => c.id === activeTask.catId);
+  const task = cat && cat.tasks.find(t => t.id === activeTask.id);
+  if (task) { task.done = true; save(); }
+  activeTask = null;
+  goBack();
+}
+
+function goBack() {
+  if (running) stopTimer();
+  showScreen('screenList');
+  renderList();
+}
+
+// ADD SHEET
+function openAdd() {
+  const sel = document.getElementById('addCat');
+  sel.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('addName').value = '';
+  document.getElementById('addMins').value = '';
+  document.getElementById('aiHint').style.display = 'none';
+  document.getElementById('sheetBg').classList.add('open');
+}
+function closeAdd(e) {
+  if (e.target === document.getElementById('sheetBg')) document.getElementById('sheetBg').classList.remove('open');
+}
+function clearAI() { document.getElementById('aiHint').style.display = 'none'; }
+
+async function aiGuess() {
+  const name = document.getElementById('addName').value.trim();
+  if (!name) { alert('Skriv in uppgiftsnamnet först.'); return; }
+  const hint = document.getElementById('aiHint');
+  hint.style.display = 'block';
+  hint.className = 'ai-hint loading';
+  hint.textContent = 'Tänker...';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: `Du hjälper en utvecklare som arbetar med en React Native / Expo-app för innebandytränare kallad PlayConomy. Han har lätt för att underskatta tid och tenderar att inte starta uppgifter om han inte vet hur lång tid det tar. Uppgiften är: "${name}". Ge ett realistiskt tidsintervall i minuter, ett rekommenderat startvärde, och en kort motivering (max 2 meningar på svenska). Svara ENBART med JSON: {"min":X,"max":Y,"recommended":Z,"reason":"..."}` }]
+      })
+    });
+    const d = await resp.json();
+    const txt = d.content[0].text;
+    const json = JSON.parse(txt.replace(/```json|```/g,'').trim());
+    hint.className = 'ai-hint';
+    hint.innerHTML = `<strong>${json.recommended} min</strong> rekommenderat (${json.min}–${json.max} min)<br><span style="color:var(--text3);font-size:13px">${json.reason}</span>`;
+    document.getElementById('addMins').value = json.recommended;
+  } catch(err) {
+    hint.className = 'ai-hint';
+    hint.textContent = 'Kunde inte hämta gissning just nu.';
+  }
+}
+
+function saveTask() {
+  const name = document.getElementById('addName').value.trim();
+  const mins = parseInt(document.getElementById('addMins').value);
+  const catId = document.getElementById('addCat').value;
+  if (!name || !mins) { alert('Fyll i namn och tid.'); return; }
+  const cat = data.categories.find(c => c.id === catId);
+  cat.tasks.push({ id: 't' + Date.now(), name, estMins: mins, done: false, loggedSecs: 0 });
+  save();
+  document.getElementById('sheetBg').classList.remove('open');
+  renderList();
+}
+
+function openStats() {
+  const total = allTasks().reduce((s,t) => s + t.loggedSecs, 0);
+  const done = doneCount();
+  const left = fmtMins(totalEstMins());
+  alert(`Totalt loggat: ${fmtSecsH(total)}\nKlara uppgifter: ${done}/${totalCount()}\nUppskattad tid kvar: ${left}`);
+}
+
+renderList();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js")}</script>
+</body>
+</html>
